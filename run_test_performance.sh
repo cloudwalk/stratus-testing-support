@@ -87,12 +87,44 @@ if [ "${LATEST_COMMIT}" != "${LAST_SENT_COMMIT}" ]; then
     just setup
     just e2e-flamegraph
 
+    psql postgres://postgres:123@0.0.0.0:5432/stratus --expanded -c \
+        "WITH TimeDifferences AS (
+             SELECT
+                 number,
+                 created_at,
+                 EXTRACT(EPOCH FROM (created_at - LAG(created_at) OVER (ORDER BY created_at))) AS time_diff_seconds
+             FROM
+                 blocks
+         )
+         SELECT
+             percentile_cont(0.25) WITHIN GROUP (ORDER BY time_diff_seconds) AS p25_in_seconds,
+             percentile_cont(0.5) WITHIN GROUP (ORDER BY time_diff_seconds) AS p50_in_seconds,
+             percentile_cont(0.9) WITHIN GROUP (ORDER BY time_diff_seconds) AS p90_in_seconds,
+             percentile_cont(0.99) WITHIN GROUP (ORDER BY time_diff_seconds) AS p99_in_seconds,
+             percentile_cont(0.999) WITHIN GROUP (ORDER BY time_diff_seconds) AS p999_in_seconds,
+             MAX(time_diff_seconds) AS max_time_diff_seconds,
+             MIN(time_diff_seconds) AS min_time_diff_seconds,
+             AVG(time_diff_seconds) AS avg_time_diff_seconds,
+             COUNT(time_diff_seconds) AS count_not_null_time_diff_seconds
+         FROM
+             TimeDifferences
+         WHERE
+             time_diff_seconds IS NOT NULL;" > average_block_time.txt
+
+    aditional_info=$(cat average_block_time.txt  | tail)
+    formatted_additional_info=$(echo "New flamegraph generated for commit 3352e976b6ee746ec5819698c1d17f7515f52fff
+
+\`\`\`
+$additional_info
+\`\`\`" | awk '{printf "%s\n", $0}')
+
     # Send the flamegraph to Slack
     curl -F file=@flamegraph.svg \
-         -F "initial_comment=New flamegraph generated for commit ${LATEST_COMMIT}" \
          -F channels="${SLACK_CHANNEL_ID}" \
          -F token="${SLACK_TOKEN}" \
+         -F "initial_comment=${formatted_additional_info}" \
          https://slack.com/api/files.upload
+
 
     # Update the last sent commit hash
     echo "${LATEST_COMMIT}" > "${LAST_COMMIT_FILE}"
