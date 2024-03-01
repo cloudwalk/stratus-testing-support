@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+set -e
+
 # Load the environment variables from the .env file
 if [ -f "$(dirname "$0")/.env" ]; then
     export $(cat "$(dirname "$0")/.env" | xargs)
@@ -80,6 +82,7 @@ fi
 echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid
 # Compare commit hashes
 if [ "${LATEST_COMMIT}" != "${LAST_SENT_COMMIT}" ]; then
+    git reset --hard HEAD
     # Pull the latest changes
     git pull origin main
 
@@ -115,7 +118,7 @@ if [ "${LATEST_COMMIT}" != "${LAST_SENT_COMMIT}" ]; then
     formatted_additional_info=$(echo "New flamegraph generated for commit 3352e976b6ee746ec5819698c1d17f7515f52fff
 
 \`\`\`
-$additional_info
+$aditional_info
 \`\`\`" | awk '{printf "%s\n", $0}')
 
     # Send the flamegraph to Slack
