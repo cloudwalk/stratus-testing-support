@@ -50,7 +50,6 @@ fi
 
 git lfs fetch
 git lfs checkout
-cp ./stratus_test_data.csv "./${REPO_DIR}/e2e/substrate-sync-mock-server/stratus_test_data.csv"
 cd "${REPO_DIR}"
 
 # Fetch latest changes without applying them
@@ -85,6 +84,7 @@ if [ "${LATEST_COMMIT}" != "${LAST_SENT_COMMIT}" ]; then
     git reset --hard HEAD
     # Pull the latest changes
     git pull origin main
+    cp ../stratus_test_data.csv "./${REPO_DIR}/e2e/substrate-sync-mock-server/stratus_test_data.csv"
 
     # Assuming 'just' commands are properly set up to use Docker and npm
     just setup
