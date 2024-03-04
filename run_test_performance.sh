@@ -2,6 +2,11 @@
 
 set -e
 
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+# Change to the directory where the script is located
+cd "$SCRIPT_DIR"
+
 # Load the environment variables from the .env file
 if [ -f "$(dirname "$0")/.env" ]; then
     export $(cat "$(dirname "$0")/.env" | xargs)
