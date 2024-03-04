@@ -66,10 +66,6 @@ if ! command -v perf > /dev/null 2>&1; then
     sudo apt-get update && sudo apt-get install -y linux-perf-$KERNEL_VERSION || sudo apt-get install -y linux-perf
 fi
 
-# Get the latest commit hash from origin/main and the last sent commit hash
-LAST_COMMIT_FILE="./last_processed_commit.txt"
-LATEST_COMMIT=$(git rev-parse origin/main)
-LAST_SENT_COMMIT=$(cat "${LAST_COMMIT_FILE}" 2>/dev/null || echo "")
 
 if ! command -v just > /dev/null 2>&1; then
     echo "just not installed. Attempting to install..."
@@ -84,6 +80,12 @@ if ! command -v just > /dev/null 2>&1; then
 fi
 
 echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+
+# Get the latest commit hash from origin/main and the last sent commit hash
+LAST_COMMIT_FILE="./last_processed_commit.txt"
+LATEST_COMMIT=$(git rev-parse origin/main)
+LAST_SENT_COMMIT=$(cat "${LAST_COMMIT_FILE}" 2>/dev/null || echo "")
+
 # Compare commit hashes
 if [ "${LATEST_COMMIT}" != "${LAST_SENT_COMMIT}" ]; then
     git reset --hard HEAD
@@ -105,6 +107,7 @@ if [ "${LATEST_COMMIT}" != "${LAST_SENT_COMMIT}" ]; then
                  blocks
          )
          SELECT
+             (COUNT(time_diff_seconds) / NULLIF(SUM(time_diff_seconds), 0)) AS average_tps,
              percentile_cont(0.25) WITHIN GROUP (ORDER BY time_diff_seconds) AS p25_in_seconds,
              percentile_cont(0.5) WITHIN GROUP (ORDER BY time_diff_seconds) AS p50_in_seconds,
              percentile_cont(0.9) WITHIN GROUP (ORDER BY time_diff_seconds) AS p90_in_seconds,
@@ -120,7 +123,7 @@ if [ "${LATEST_COMMIT}" != "${LAST_SENT_COMMIT}" ]; then
              time_diff_seconds IS NOT NULL;" > average_block_time.txt
 
     aditional_info=$(cat average_block_time.txt  | tail)
-    formatted_additional_info=$(echo "New flamegraph generated for commit 3352e976b6ee746ec5819698c1d17f7515f52fff
+    formatted_additional_info=$(echo "New flamegraph generated for commit ${LATEST_COMMIT}
 
 \`\`\`
 $aditional_info
